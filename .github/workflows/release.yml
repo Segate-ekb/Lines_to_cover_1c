@@ -1,0 +1,44 @@
+name: release
+
+on:
+  push:
+    tags: [ 'v*' ]
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            asset: lines-to-cover-linux.zip
+          - os: windows-latest
+            asset: lines-to-cover-windows.zip
+          - os: macos-latest
+            asset: lines-to-cover-macos.zip
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Test and build jlink runtime
+        run: ./gradlew --no-daemon test runtimeZip
+
+      - name: Prepare asset (per OS)
+        run: cp "$(ls build/*.zip | head -n1)" "${{ matrix.asset }}"
+
+      - name: Attach to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.asset }}

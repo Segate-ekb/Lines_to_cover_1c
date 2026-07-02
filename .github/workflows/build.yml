@@ -1,0 +1,35 @@
+name: build
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Test and build jlink runtime
+        run: ./gradlew --no-daemon test runtimeZip
+
+      - name: Upload runtime bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: lines-to-cover-${{ runner.os }}
+          path: build/*.zip
+          if-no-files-found: error
